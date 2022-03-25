@@ -1,0 +1,117 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'api-server'
+
+Parameters:
+  Project:
+    Type: String
+  NodeEnv:
+    Type: String
+  PublicSubnet01Id:
+    Type: String
+  VPCId:
+    Type: String
+  MyIP:
+    Type: String
+    Default: 175.138.132.132/32
+
+Resources:
+  # create security group for api server instance
+  ApiServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Api Server Security Group
+      VpcId: !Ref VPCId
+      SecurityGroupIngress: 
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+
+  # Create launch template for ec2 api server
+  Ec2LaunchTemplate:
+    DependsOn:
+      - ApiServerSecurityGroup
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub '${NodeEnv}-${Project}-api-server-template'
+      LaunchTemplateData:
+        ImageId: ami-055d15d9cfddf7bd3 # Ubuntu Server 20.04 LTS (HVM), SSD Volume Type
+        InstanceType: t2.micro
+        KeyName: tuto # keypair need to create from console
+        NetworkInterfaces:
+          - AssociatePublicIpAddress: true
+            DeleteOnTermination: true
+            DeviceIndex: 0
+            Groups: 
+              - !GetAtt ApiServerSecurityGroup.GroupId
+            SubnetId: !Ref PublicSubnet01Id
+        BlockDeviceMappings: 
+          - DeviceName: /dev/xvda
+            Ebs: 
+              DeleteOnTermination: true
+              Encrypted: false
+              VolumeSize: 30
+              VolumeType: gp2
+        TagSpecifications:      
+          - ResourceType: instance
+            Tags: 
+              - Key: Name
+                Value: !Sub '${NodeEnv}-${Project}-api-server'
+  
+  # create instance
+  Ec2Instance:
+    DependsOn:
+      - Ec2LaunchTemplate
+    Type: AWS::EC2::Instance
+    Properties:
+      LaunchTemplate: 
+        LaunchTemplateId: !Ref Ec2LaunchTemplate
+        Version: !GetAtt Ec2LaunchTemplate.LatestVersionNumber
+  
+  # create target group
+  TargetGroupApiApp:
+    DependsOn:
+      - Ec2Instance
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref VPCId
+      Port: 80
+      Protocol: TCP
+      TargetType: instance
+      Targets: 
+        - Id: !Ref Ec2Instance
+          Port: 80
+
+  # create load balancer
+  NLBApiApp:
+    DependsOn:
+      - TargetGroupApiApp
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties: 
+      Type: network
+      IpAddressType: ipv4
+      Scheme: internet-facing
+      Subnets: 
+        - !Ref PublicSubnet01Id
+  
+  # create load balancer listener
+  NLBListener:
+    DependsOn:
+      - NLBApiApp
+      - TargetGroupApiApp
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties: 
+      DefaultActions: 
+        - TargetGroupArn: !Ref TargetGroupApiApp
+          Type: forward
+      LoadBalancerArn: !Ref NLBApiApp
+      Port: 80
+      Protocol: TCP

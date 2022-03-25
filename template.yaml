@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  tradisional-3rd-tier-arch
+
+Parameters:
+  Project:
+    Type: String
+  NodeEnv:
+    Type: String
+  
+Resources:
+  # -------------------------------------------
+  # Single Resource Section
+  # -------------------------------------------
+
+  CustomVPC:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: './stacks/custom-vpc.yml'
+      Parameters:
+        Project: !Ref Project
+        NodeEnv: !Ref NodeEnv
+  
+  # WebServer:
+  #   DependsOn:
+  #     - CustomVPC
+  #   Type: AWS::Serverless::Application
+  #   Properties:
+  #     Location: './stacks/web-server.yml'
+  #     Parameters:
+  #       Project: !Ref Project
+  #       NodeEnv: !Ref NodeEnv
+  #       PublicSubnet01Id: !GetAtt CustomVPC.Outputs.PublicSubnet01Id
+  #       VPCId: !GetAtt CustomVPC.Outputs.VPCId
+  
+  # ApiServer:
+  #   DependsOn:
+  #     - CustomVPC
+  #   Type: AWS::Serverless::Application
+  #   Properties:
+  #     Location: './stacks/api-server.yml'
+  #     Parameters:
+  #       Project: !Ref Project
+  #       NodeEnv: !Ref NodeEnv
+  #       PrivateSubnet01Id: !GetAtt CustomVPC.Outputs.PrivateSubnet01Id
+  #       VPCId: !GetAtt CustomVPC.Outputs.VPCId
+

@@ -1,0 +1,9 @@
+{
+  "name": "Tradisional_3rd_Tier_Architecture_Tutorial",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "deploy": "sh ./script/deploy.sh"
+  }
+}
