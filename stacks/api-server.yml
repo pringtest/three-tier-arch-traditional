@@ -6,13 +6,10 @@ Parameters:
     Type: String
   NodeEnv:
     Type: String
-  PublicSubnet01Id:
+  PrivateSubnet01Id:
     Type: String
   VPCId:
     Type: String
-  MyIP:
-    Type: String
-    Default: 175.138.132.132/32
 
 Resources:
   # create security group for api server instance
@@ -27,12 +24,8 @@ Resources:
           ToPort: 22
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 3000
-          ToPort: 3000
+          FromPort: 8080
+          ToPort: 8080
           CidrIp: 0.0.0.0/0
 
   # Create launch template for ec2 api server
@@ -47,12 +40,12 @@ Resources:
         InstanceType: t2.micro
         KeyName: tuto # keypair need to create from console
         NetworkInterfaces:
-          - AssociatePublicIpAddress: true
+          - AssociatePublicIpAddress: false # ec2 in private subnet no need public ip
             DeleteOnTermination: true
             DeviceIndex: 0
             Groups: 
               - !GetAtt ApiServerSecurityGroup.GroupId
-            SubnetId: !Ref PublicSubnet01Id
+            SubnetId: !Ref PrivateSubnet01Id
         BlockDeviceMappings: 
           - DeviceName: /dev/xvda
             Ebs: 
@@ -83,24 +76,24 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       VpcId: !Ref VPCId
-      Port: 80
+      Port: 8080
       Protocol: TCP
       TargetType: instance
       Targets: 
         - Id: !Ref Ec2Instance
-          Port: 80
+          Port: 8080
 
   # create load balancer
   NLBApiApp:
     DependsOn:
-      - TargetGroupApiApp
+      - Ec2Instance
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties: 
       Type: network
       IpAddressType: ipv4
-      Scheme: internet-facing
+      Scheme: internal # internet-facing
       Subnets: 
-        - !Ref PublicSubnet01Id
+        - !Ref PrivateSubnet01Id
   
   # create load balancer listener
   NLBListener:
@@ -113,5 +106,5 @@ Resources:
         - TargetGroupArn: !Ref TargetGroupApiApp
           Type: forward
       LoadBalancerArn: !Ref NLBApiApp
-      Port: 80
+      Port: 8080
       Protocol: TCP

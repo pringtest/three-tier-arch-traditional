@@ -144,6 +144,28 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
   
+  # create Vpc Endpoint for dynamoDB
+  DynamoDBGatewayEndpoint:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      RouteTableIds:
+        - !Ref PrivateRouteTable01
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.dynamodb'
+      VpcId: !Ref VPC
+
+  # |------------------------------------------------------|
+  # | comment below resource to delete natgateway.         |
+  # | Enable only when needed.                             |
+  # | for example to update code of ec2 in private subnet. |
+  # |------------------------------------------------------|
+
   # # create elastic IP for natgateway az1
   # NatGatewayEIP1:
   #   DependsOn:

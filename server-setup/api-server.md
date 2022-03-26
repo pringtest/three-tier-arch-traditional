@@ -1,4 +1,4 @@
-# WEB Server Setup - Ubuntu Server 20.04 LTS (HVM), SSD Volume Type
+# API Server Setup
 
 ## Installing open source NGINX Software and configure
 
@@ -49,12 +49,17 @@ sudo systemctl start nginx.service
 sudo systemctl status nginx.service
 ```
 
-10. Reboot instance
+10. Change nginx default confix port to 8080
 ```
-sudo reboot
+sudo vim /etc/nginx/conf.d/default.conf
 ```
 
-11. Check default nginx webpage from ec2 public ip at browser
+11. Check default nginx webpage from ec2 public ip
+- exit terminal and go back to bastion host terminal.
+- curl private ip of the server at port 8080
+```
+curl <PRIVATE_IP>:8080
+```
 
 ## Install Git (if not have)
 
@@ -94,30 +99,26 @@ sudo apt-get update && sudo apt-get install yarn
 node --version && npm --version && yarn --version
 ```
 
-## Preparing the Web App - Next Js
+## Preparing the Api Server - Express Js
+
 1. git clone the repo
 ```
-git clone https://github.com/pringtest/demo_web_server.git
+git clone https://github.com/pringtest/demo_api_server.git
 ```
 
-2. go to project folder and install dependencies
+2. Go to project folder and install dependencies
 ```
-cd demo_web_server
+cd demo_api_server
 yarn install
 ```
 
-3. Copy next.config.example.js to next.config.js and fill all the environment variable
+3. Copy .env.example to .env and fill all the environment variable
 ```
-sudo cp next.config.example.js next.config.js
-sudo vim next.config.js
-```
-
-4. build the web app
-```
-yarn build
+sudo cp .env.example .env
+sudo vim .env
 ```
 
-## Install PM2 and run Web App
+## Install PM2 and run Api Server
 
 1. Install PM2 using npm globally
 ```
@@ -145,21 +146,22 @@ pm2 startup
 sudo reboot
 ```
 
-6. Check running web server
+6. Check running api server
 ```
 pm2 list
 ```
 
-7. Check web server locally
+7. Test api server locally
 ```
-curl localhost:3000
+curl localhost:3000/dynamodb
+curl localhost:3000/rds
 ```
 
 ## Copy nginx config to default nginx config
 
 1. Copy and overwrite nginx config as default
 ```
-sudo cp ~/demo_web_server/nginx/nginx.conf /etc/nginx/conf.d/default.conf
+sudo cp ~/demo_api_server/nginx/nginx.conf /etc/nginx/conf.d/default.conf
 ```
 
 2. To verify nginx configuration
@@ -172,7 +174,11 @@ sudo nginx -t
 sudo service nginx restart
 ```
 
-4. Test webpage from from ec2 public ip at browser
+4. Test api server from bastion host
+```
+curl <PRIVATE_IP>:8080/dynamodb
+curl <PRIVATE_IP>:8080/rds
+```
 
 # References
 1.  https://www.nginx.com/blog/setting-up-nginx/#install-nginx

@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'bastion-host-server'
+
+Parameters:
+  Project:
+    Type: String
+  NodeEnv:
+    Type: String
+  PublicSubnet01Id:
+    Type: String
+  VPCId:
+    Type: String
+  MyIP:
+    Type: String
+    Default: 175.138.132.132/32
+
+Resources:
+  # create security group for bastion server instance
+  BastionServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Bastion Server Security Group
+      VpcId: !Ref VPCId
+      SecurityGroupIngress: 
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref MyIP
+
+  # Create launch template for ec2 bastion server
+  Ec2LaunchTemplate:
+    DependsOn:
+      - BastionServerSecurityGroup
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub '${NodeEnv}-${Project}-bastion-server-template'
+      LaunchTemplateData:
+        ImageId: ami-055d15d9cfddf7bd3 # Ubuntu Server 20.04 LTS (HVM), SSD Volume Type
+        InstanceType: t2.micro
+        KeyName: tuto # keypair need to create from console
+        NetworkInterfaces:
+          - AssociatePublicIpAddress: true
+            DeleteOnTermination: true
+            DeviceIndex: 0
+            Groups: 
+              - !GetAtt BastionServerSecurityGroup.GroupId
+            SubnetId: !Ref PublicSubnet01Id
+        BlockDeviceMappings: 
+          - DeviceName: /dev/xvda
+            Ebs: 
+              DeleteOnTermination: true
+              Encrypted: false
+              VolumeSize: 30
+              VolumeType: gp2
+        TagSpecifications:      
+          - ResourceType: instance
+            Tags: 
+              - Key: Name
+                Value: !Sub '${NodeEnv}-${Project}-bastion-server'
+  
+  # create instance
+  Ec2Instance:
+    DependsOn:
+      - Ec2LaunchTemplate
+    Type: AWS::EC2::Instance
+    Properties:
+      LaunchTemplate: 
+        LaunchTemplateId: !Ref Ec2LaunchTemplate
+        Version: !GetAtt Ec2LaunchTemplate.LatestVersionNumber

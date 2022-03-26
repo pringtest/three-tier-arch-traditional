@@ -10,9 +10,6 @@ Parameters:
     Type: String
   VPCId:
     Type: String
-  MyIP:
-    Type: String
-    Default: 175.138.132.132/32
 
 Resources:
   # create security group for web server instance
@@ -30,10 +27,10 @@ Resources:
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 3000
-          ToPort: 3000
-          CidrIp: 0.0.0.0/0
+        # - IpProtocol: tcp
+        #   FromPort: 3000
+        #   ToPort: 3000
+        #   CidrIp: 0.0.0.0/0
 
   # Create launch template for ec2 web server
   Ec2LaunchTemplate:
@@ -47,7 +44,7 @@ Resources:
         InstanceType: t2.micro
         KeyName: tuto # keypair need to create from console
         NetworkInterfaces:
-          - AssociatePublicIpAddress: true
+          - AssociatePublicIpAddress: true # change to false if use bastion host
             DeleteOnTermination: true
             DeviceIndex: 0
             Groups: 
@@ -93,7 +90,7 @@ Resources:
   # create load balancer
   NLBWebApp:
     DependsOn:
-      - TargetGroupWebApp
+      - Ec2Instance
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties: 
       Type: network

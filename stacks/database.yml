@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'database'
+
+Parameters:
+  Project:
+    Type: String
+  NodeEnv:
+    Type: String
+
+Resources:
+  # create s3
+  ImageBucket:
+    Type: AWS::S3::Bucket
+    Properties: 
+      BucketName: !Sub '${NodeEnv}-${Project}-image'
+      AccessControl: Private
+
+  # create dynamoDB
+  UserTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: UserEmail
+          AttributeType: S
+      KeySchema:
+        - AttributeName: UserEmail
+          KeyType: HASH
+      BillingMode: "PAY_PER_REQUEST"
+
+  # create rds
+
+Outputs:
+  ImageBucketName:
+    Value: !Ref ImageBucket
+  UserTableName:
+    Value: !Ref UserTable
+  
