@@ -12,6 +12,29 @@ Parameters:
     Type: String
 
 Resources:
+  # create ec2 IAM role
+  WebServerInstanceProfileRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+  # create ec2 instance profile
+  WebServerInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: 
+        - !Ref WebServerInstanceProfileRole
+
   # create security group for web server instance
   WebServerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -19,10 +42,10 @@ Resources:
       GroupDescription: Web Server Security Group
       VpcId: !Ref VPCId
       SecurityGroupIngress: 
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: 0.0.0.0/0
+        # - IpProtocol: tcp
+        #   FromPort: 22
+        #   ToPort: 22
+        #   CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
@@ -42,7 +65,9 @@ Resources:
       LaunchTemplateData:
         ImageId: ami-055d15d9cfddf7bd3 # Ubuntu Server 20.04 LTS (HVM), SSD Volume Type
         InstanceType: t2.micro
-        KeyName: tuto # keypair need to create from console
+        # KeyName: tuto # keypair need to create from console
+        IamInstanceProfile: 
+          Arn: !GetAtt WebServerInstanceProfile.Arn
         NetworkInterfaces:
           - AssociatePublicIpAddress: true # change to false if use bastion host
             DeleteOnTermination: true
@@ -73,42 +98,42 @@ Resources:
         LaunchTemplateId: !Ref Ec2LaunchTemplate
         Version: !GetAtt Ec2LaunchTemplate.LatestVersionNumber
   
-  # create target group
-  TargetGroupWebApp:
-    DependsOn:
-      - Ec2Instance
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      VpcId: !Ref VPCId
-      Port: 80
-      Protocol: TCP
-      TargetType: instance
-      Targets: 
-        - Id: !Ref Ec2Instance
-          Port: 80
+  # # create target group
+  # TargetGroupWebApp:
+  #   DependsOn:
+  #     - Ec2Instance
+  #   Type: AWS::ElasticLoadBalancingV2::TargetGroup
+  #   Properties:
+  #     VpcId: !Ref VPCId
+  #     Port: 80
+  #     Protocol: TCP
+  #     TargetType: instance
+  #     Targets: 
+  #       - Id: !Ref Ec2Instance
+  #         Port: 80
 
-  # create load balancer
-  NLBWebApp:
-    DependsOn:
-      - Ec2Instance
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    Properties: 
-      Type: network
-      IpAddressType: ipv4
-      Scheme: internet-facing
-      Subnets: 
-        - !Ref PublicSubnet01Id
+  # # create load balancer
+  # NLBWebApp:
+  #   DependsOn:
+  #     - Ec2Instance
+  #   Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+  #   Properties: 
+  #     Type: network
+  #     IpAddressType: ipv4
+  #     Scheme: internet-facing
+  #     Subnets: 
+  #       - !Ref PublicSubnet01Id
   
-  # create load balancer listener
-  NLBListener:
-    DependsOn:
-      - NLBWebApp
-      - TargetGroupWebApp
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties: 
-      DefaultActions: 
-        - TargetGroupArn: !Ref TargetGroupWebApp
-          Type: forward
-      LoadBalancerArn: !Ref NLBWebApp
-      Port: 80
-      Protocol: TCP
+  # # create load balancer listener
+  # NLBListener:
+  #   DependsOn:
+  #     - NLBWebApp
+  #     - TargetGroupWebApp
+  #   Type: AWS::ElasticLoadBalancingV2::Listener
+  #   Properties: 
+  #     DefaultActions: 
+  #       - TargetGroupArn: !Ref TargetGroupWebApp
+  #         Type: forward
+  #     LoadBalancerArn: !Ref NLBWebApp
+  #     Port: 80
+  #     Protocol: TCP

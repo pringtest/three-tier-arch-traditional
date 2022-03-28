@@ -73,16 +73,16 @@ Resources:
       - Key: Network
         Value: Public
 
-  # create route table for private subnet 1:
-  PrivateRouteTable01:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VPC
-      Tags:
-      - Key: Name
-        Value: !Sub '${NodeEnv}-${Project}-private-subnets-01'
-      - Key: Network
-        Value: Private01
+  # # create route table for private subnet 1:
+  # PrivateRouteTable01:
+  #   Type: AWS::EC2::RouteTable
+  #   Properties:
+  #     VpcId: !Ref VPC
+  #     Tags:
+  #     - Key: Name
+  #       Value: !Sub '${NodeEnv}-${Project}-private-subnets-01'
+  #     - Key: Network
+  #       Value: Private01
   
   # create public subnet
   PublicSubnet01:
@@ -128,12 +128,12 @@ Resources:
       SubnetId: !Ref PublicSubnet01
       RouteTableId: !Ref PublicRouteTable
 
-  # 1 private subnet connect to 1 route table
-  PrivateSubnet01RouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref PrivateSubnet01
-      RouteTableId: !Ref PrivateRouteTable01
+  # # 1 private subnet connect to 1 route table
+  # PrivateSubnet01RouteTableAssociation:
+  #   Type: AWS::EC2::SubnetRouteTableAssociation
+  #   Properties:
+  #     SubnetId: !Ref PrivateSubnet01
+  #     RouteTableId: !Ref PrivateRouteTable01
   
   # connect public route table to internet gateway
   PublicRoute:
@@ -143,11 +143,31 @@ Resources:
       RouteTableId: !Ref PublicRouteTable
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
-  
-  # create Vpc Endpoint for dynamoDB
-  DynamoDBGatewayEndpoint:
+
+  # |------------------------------------------------------|
+  # | VPC Endpoints.                                       |
+  # |------------------------------------------------------|
+
+  # create security group for web server instance
+  SSMSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SSM Endpoint Security Group
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+  # create Vpc Endpoint for SSM
+  SSMInterfaceEndpoint:
     Type: 'AWS::EC2::VPCEndpoint'
     Properties:
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !GetAtt SSMSecurityGroup.GroupId
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -155,10 +175,66 @@ Resources:
             Principal: '*'
             Action: '*'
             Resource: '*'
-      RouteTableIds:
-        - !Ref PrivateRouteTable01
-      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.dynamodb'
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ssm'
+      SubnetIds: 
+        - !Ref PrivateSubnet01
       VpcId: !Ref VPC
+  
+  # create Vpc Endpoint for SSM Message
+  SSMMessagesInterfaceEndpoint:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !GetAtt SSMSecurityGroup.GroupId
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ssmmessages'
+      SubnetIds: 
+        - !Ref PrivateSubnet01
+      VpcId: !Ref VPC
+  
+  # # create Vpc Endpoint for ec2 Messages
+  # Ec2MessagesInterfaceEndpoint:
+  #   Type: 'AWS::EC2::VPCEndpoint'
+  #   Properties:
+  #     VpcEndpointType: Interface
+  #     PrivateDnsEnabled: true
+  #     SecurityGroupIds:
+  #       - !GetAtt SSMSecurityGroup.GroupId
+  #     PolicyDocument:
+  #       Version: '2012-10-17'
+  #       Statement:
+  #         - Effect: Allow
+  #           Principal: '*'
+  #           Action: '*'
+  #           Resource: '*'
+  #     ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ec2messages'
+  #     SubnetIds: 
+  #       - !Ref PrivateSubnet01
+  #     VpcId: !Ref VPC
+  
+  # # create Vpc Endpoint for dynamoDB
+  # DynamoDBGatewayEndpoint:
+  #   Type: 'AWS::EC2::VPCEndpoint'
+  #   Properties:
+  #     PolicyDocument:
+  #       Version: '2012-10-17'
+  #       Statement:
+  #         - Effect: Allow
+  #           Principal: '*'
+  #           Action: '*'
+  #           Resource: '*'
+  #     RouteTableIds:
+  #       - !Ref PrivateRouteTable01
+  #     ServiceName: !Sub 'com.amazonaws.${AWS::Region}.dynamodb'
+  #     VpcId: !Ref VPC
 
   # |------------------------------------------------------|
   # | comment below resource to delete natgateway.         |

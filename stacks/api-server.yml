@@ -12,6 +12,29 @@ Parameters:
     Type: String
 
 Resources:
+  # create ec2 IAM role
+  ApiServerInstanceProfileRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+  # create ec2 instance profile
+  ApiServerInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: 
+        - !Ref ApiServerInstanceProfileRole
+
   # create security group for api server instance
   ApiServerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -19,10 +42,10 @@ Resources:
       GroupDescription: Api Server Security Group
       VpcId: !Ref VPCId
       SecurityGroupIngress: 
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: 0.0.0.0/0
+        # - IpProtocol: tcp
+        #   FromPort: 22
+        #   ToPort: 22
+        #   CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
           FromPort: 8080
           ToPort: 8080
@@ -38,7 +61,9 @@ Resources:
       LaunchTemplateData:
         ImageId: ami-055d15d9cfddf7bd3 # Ubuntu Server 20.04 LTS (HVM), SSD Volume Type
         InstanceType: t2.micro
-        KeyName: tuto # keypair need to create from console
+        # KeyName: tuto # keypair need to create from console
+        IamInstanceProfile: 
+          Arn: !GetAtt ApiServerInstanceProfile.Arn
         NetworkInterfaces:
           - AssociatePublicIpAddress: false # ec2 in private subnet no need public ip
             DeleteOnTermination: true
@@ -69,42 +94,42 @@ Resources:
         LaunchTemplateId: !Ref Ec2LaunchTemplate
         Version: !GetAtt Ec2LaunchTemplate.LatestVersionNumber
   
-  # create target group
-  TargetGroupApiApp:
-    DependsOn:
-      - Ec2Instance
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      VpcId: !Ref VPCId
-      Port: 8080
-      Protocol: TCP
-      TargetType: instance
-      Targets: 
-        - Id: !Ref Ec2Instance
-          Port: 8080
+  # # create target group
+  # TargetGroupApiApp:
+  #   DependsOn:
+  #     - Ec2Instance
+  #   Type: AWS::ElasticLoadBalancingV2::TargetGroup
+  #   Properties:
+  #     VpcId: !Ref VPCId
+  #     Port: 8080
+  #     Protocol: TCP
+  #     TargetType: instance
+  #     Targets: 
+  #       - Id: !Ref Ec2Instance
+  #         Port: 8080
 
-  # create load balancer
-  NLBApiApp:
-    DependsOn:
-      - Ec2Instance
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    Properties: 
-      Type: network
-      IpAddressType: ipv4
-      Scheme: internal # internet-facing
-      Subnets: 
-        - !Ref PrivateSubnet01Id
+  # # create load balancer
+  # NLBApiApp:
+  #   DependsOn:
+  #     - Ec2Instance
+  #   Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+  #   Properties: 
+  #     Type: network
+  #     IpAddressType: ipv4
+  #     Scheme: internal # internet-facing
+  #     Subnets: 
+  #       - !Ref PrivateSubnet01Id
   
-  # create load balancer listener
-  NLBListener:
-    DependsOn:
-      - NLBApiApp
-      - TargetGroupApiApp
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties: 
-      DefaultActions: 
-        - TargetGroupArn: !Ref TargetGroupApiApp
-          Type: forward
-      LoadBalancerArn: !Ref NLBApiApp
-      Port: 8080
-      Protocol: TCP
+  # # create load balancer listener
+  # NLBListener:
+  #   DependsOn:
+  #     - NLBApiApp
+  #     - TargetGroupApiApp
+  #   Type: AWS::ElasticLoadBalancingV2::Listener
+  #   Properties: 
+  #     DefaultActions: 
+  #       - TargetGroupArn: !Ref TargetGroupApiApp
+  #         Type: forward
+  #     LoadBalancerArn: !Ref NLBApiApp
+  #     Port: 8080
+  #     Protocol: TCP

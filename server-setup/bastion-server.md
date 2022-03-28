@@ -2,7 +2,7 @@
 
 # Access to the ec2 server in private subnet from bastion host
 
-1. Add private key to ssh so that it can be used in subsecuent command.
+1. Add private key to ssh so that it can be used in subsequent command.
 
 For mac book:
 ```
