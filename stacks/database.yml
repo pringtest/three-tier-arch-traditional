@@ -6,6 +6,14 @@ Parameters:
     Type: String
   NodeEnv:
     Type: String
+  PrivateSubnet01Id:
+    Type: String
+  PrivateSubnet02Id:
+    Type: String
+  VPCId:
+    Type: String
+  VpcBlockIp:
+    Type: String
 
 Resources:
   # create s3
@@ -27,8 +35,54 @@ Resources:
   #         KeyType: HASH
   #     BillingMode: "PAY_PER_REQUEST"
 
-  # create rds
+  # Subnet Group for rds
+  RdsSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: !Sub '${NodeEnv}-${Project}-rds-subnet-group'
+      SubnetIds: 
+        - !Ref PrivateSubnet01Id
+        - !Ref PrivateSubnet02Id
 
+  # Security Group for rds
+  DBEc2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: RDS DB Security Group
+      VpcId: !Ref VPCId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: !Ref VpcBlockIp
+
+  # create rds
+  RdsMasterDB:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: !Sub '${NodeEnv}-${Project}-rds-db'
+      Engine: mariadb
+      EngineVersion: 10.5.12
+      AllocatedStorage: 20
+      StorageType: gp2
+      DBInstanceClass: db.t2.micro
+      MasterUsername: admin
+      MasterUserPassword: admin123
+      MultiAZ: false
+      AvailabilityZone: !Sub "${AWS::Region}a"
+      Port: 3306
+      EnableIAMDatabaseAuthentication: false
+      BackupRetentionPeriod: 0
+      DeleteAutomatedBackups: true
+      AutoMinorVersionUpgrade: false
+      DeletionProtection: false
+      PubliclyAccessible: false
+      DBSubnetGroupName: !Ref RdsSubnetGroup
+      VPCSecurityGroups: 
+        - !GetAtt DBEc2SecurityGroup.GroupId
+      Tags:
+        - Key: Name
+          Value: !Sub '${NodeEnv}-${Project}-masterdb-rds'
 
 Outputs:
   ImageBucketName:

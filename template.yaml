@@ -10,14 +10,6 @@ Parameters:
     Type: String
   
 Resources:
-  Databases:
-    Type: AWS::Serverless::Application
-    Properties:
-      Location: './stacks/database.yml'
-      Parameters:
-        Project: !Ref Project
-        NodeEnv: !Ref NodeEnv
-
   CustomVPC:
     Type: AWS::Serverless::Application
     Properties:
@@ -61,4 +53,19 @@ Resources:
         NodeEnv: !Ref NodeEnv
         PrivateSubnet01Id: !GetAtt CustomVPC.Outputs.PrivateSubnet01Id
         VPCId: !GetAtt CustomVPC.Outputs.VPCId
+  
+  Databases:
+    DependsOn:
+      - CustomVPC
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: './stacks/database.yml'
+      Parameters:
+        Project: !Ref Project
+        NodeEnv: !Ref NodeEnv
+        PrivateSubnet01Id: !GetAtt CustomVPC.Outputs.PrivateSubnet01Id
+        PrivateSubnet02Id: !GetAtt CustomVPC.Outputs.PrivateSubnet02Id
+        VPCId: !GetAtt CustomVPC.Outputs.VPCId
+        VpcBlockIp: !GetAtt CustomVPC.Outputs.VpcBlockIp
+
 
