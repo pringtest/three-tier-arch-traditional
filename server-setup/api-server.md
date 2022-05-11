@@ -191,7 +191,7 @@ sudo service nginx restart
 
 4. Test api server from bastion host
 ```
-curl <PRIVATE_IP>:8080/rds
+curl <PRIVATE_IP>:8080/dynamodb
 ```
 
 # References
