@@ -45,7 +45,7 @@ cd /etc/apt
 sudo vim sources.list
 ```
 
-5. Appending this text at the end
+5. Append this text at the end
 ```
 deb http://nginx.org/packages/ubuntu focal nginx
 deb-src http://nginx.org/packages/ubuntu focal nginx
@@ -169,7 +169,7 @@ sudo pm2 list
 
 7. Test api server locally
 ```
-curl localhost:3000/rds
+curl localhost:3000/dynamodb
 ```
 
 ## Copy nginx config to default nginx config

@@ -18,18 +18,6 @@ Resources:
         Project: !Ref Project
         NodeEnv: !Ref NodeEnv
   
-  # BastionServer:
-  #   DependsOn:
-  #     - CustomVPC
-  #   Type: AWS::Serverless::Application
-  #   Properties:
-  #     Location: './stacks/bastion-host-server.yml'
-  #     Parameters:
-  #       Project: !Ref Project
-  #       NodeEnv: !Ref NodeEnv
-  #       PublicSubnet01Id: !GetAtt CustomVPC.Outputs.PublicSubnet01Id
-  #       VPCId: !GetAtt CustomVPC.Outputs.VPCId
-  
   WebServer:
     DependsOn:
       - CustomVPC
@@ -67,5 +55,18 @@ Resources:
         PrivateSubnet02Id: !GetAtt CustomVPC.Outputs.PrivateSubnet02Id
         VPCId: !GetAtt CustomVPC.Outputs.VPCId
         VpcBlockIp: !GetAtt CustomVPC.Outputs.VpcBlockIp
+  
+  # # Bastion host server used to access the RDS database
+  # BastionServer:
+  #   DependsOn:
+  #     - CustomVPC
+  #   Type: AWS::Serverless::Application
+  #   Properties:
+  #     Location: './stacks/bastion-host-server.yml'
+  #     Parameters:
+  #       Project: !Ref Project
+  #       NodeEnv: !Ref NodeEnv
+  #       PublicSubnet01Id: !GetAtt CustomVPC.Outputs.PublicSubnet01Id
+  #       VPCId: !GetAtt CustomVPC.Outputs.VPCId
 
 
